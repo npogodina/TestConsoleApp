@@ -1,53 +1,73 @@
 ﻿namespace DesignPatterns;
 
-// SOLID: Interface Segregation
-// Interfaces shouldn't be too large
-// Don't make consumers implement methods they don't need
-// (don't make them pay for what they don't need)
-// Have multiple small interfaces instead
+// SOLID: Dependency Inversion
+// High-level parts of the system should not depend on low-level parts of the system directly
+// They should depend on abstraction
 
-public class Program
+public enum Relationship
 {
-    public interface IPrinter
+    Parent,
+    Child,
+    Sibling
+}
+
+public class Person
+{
+    public string? Name;
+}
+
+public interface IRelationshipBrowser
+{
+    IEnumerable<Person> FindAllChildrenOf(string name);
+}
+
+// Low-level class
+public class Relationships : IRelationshipBrowser
+{
+    private List<(Person, Relationship, Person)> relations
+        = new List<(Person, Relationship, Person)>();
+
+    public void AddParentAndChild(Person parent, Person child)
     {
-        void Print();
+        relations.Add((parent, Relationship.Parent, child));
+        relations.Add((child, Relationship.Child, parent));
     }
 
-    public interface IScanner
+    public IEnumerable<Person> FindAllChildrenOf(string name)
     {
-        void Scan();
-    }
-
-    public interface IMultiFunctionDevice : IPrinter, IScanner
-    {
-
-    }
-
-    public class MultiFunctionDevice : IMultiFunctionDevice
-    {
-        private IPrinter printer;
-        private IScanner scanner;
-
-        public MultiFunctionDevice(IPrinter printer, IScanner scanner)
+        foreach (var relation in relations)
         {
-            this.printer = printer ?? throw new ArgumentNullException(paramName: nameof(printer));
-            this.scanner = scanner ?? throw new ArgumentNullException(paramName: nameof(scanner));
+            if(relation.Item1.Name == name && relation.Item2 == Relationship.Parent)
+            {
+                yield return relation.Item3;
+            }
         }
+    }
+}
 
-        public void Print()
+// High-level portion; depends on the interface
+// Low-level class Relationships can change its internals (for example, how it stores data)
+public class Research
+{
+    public Research(IRelationshipBrowser browser, string parentName)
+    {
+        var children = browser.FindAllChildrenOf(parentName);
+        foreach (var child in children)
         {
-            printer.Print(); // Decorator pattern
-        }
-
-        public void Scan()
-        {
-            scanner.Scan(); // Decorator pattern
+            Console.WriteLine($"{parentName} has a child named {child.Name}");
         }
     }
 
     static void Main(string[] args)
     {
+        var parent = new Person { Name = "Cody" };
+        var child1 = new Person { Name = "Evelynn" };
+        var child2 = new Person { Name = "Teddy" };
 
+        var relationships = new Relationships();
+        relationships.AddParentAndChild(parent, child1);
+        relationships.AddParentAndChild(parent, child2);
 
+        new Research(relationships, parent.Name);
     }
 }
