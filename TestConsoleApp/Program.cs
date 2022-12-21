@@ -1,73 +1,106 @@
-﻿namespace DesignPatterns;
+﻿using System.Text;
 
-// SOLID: Dependency Inversion
-// High-level parts of the system should not depend on low-level parts of the system directly
-// They should depend on abstraction
+namespace DesignPatterns;
 
-public enum Relationship
+// Builder pattern
+public class Program
 {
-    Parent,
-    Child,
-    Sibling
-}
-
-public class Person
-{
-    public string? Name;
-}
-
-public interface IRelationshipBrowser
-{
-    IEnumerable<Person> FindAllChildrenOf(string name);
-}
-
-// Low-level class
-public class Relationships : IRelationshipBrowser
-{
-    private List<(Person, Relationship, Person)> relations
-        = new List<(Person, Relationship, Person)>();
-
-    public void AddParentAndChild(Person parent, Person child)
+    public class HtmlElement
     {
-        relations.Add((parent, Relationship.Parent, child));
-        relations.Add((child, Relationship.Child, parent));
-    }
+        public string Name, Text;
+        public List<HtmlElement> Elements = new List<HtmlElement>();
+        public const int Indentation = 2;
 
-    public IEnumerable<Person> FindAllChildrenOf(string name)
-    {
-        foreach (var relation in relations)
+        public HtmlElement()
         {
-            if(relation.Item1.Name == name && relation.Item2 == Relationship.Parent)
+
+        }
+
+        public HtmlElement(string name, string text)
+        {
+            Name = name ?? throw new ArgumentNullException(paramName: nameof(name));
+            Text = text ?? throw new ArgumentNullException(paramName: nameof(text));
+        }
+
+        private string ToStringImpl(int indent)
+        {
+            var sb = new StringBuilder();
+            var indentation = new string(' ', Indentation * indent);
+            sb.AppendLine($"{indentation}<{Name}>");
+
+            if (!String.IsNullOrWhiteSpace(Text))
             {
-                yield return relation.Item3;
+                var textIndentation = new string(' ', Indentation * (indent + 1));
+                sb.AppendLine($"{textIndentation}{Text}");
             }
+
+            foreach (var element in Elements)
+            {
+                var elementString = element.ToStringImpl(indent + 1);
+                sb.AppendLine(elementString);
+            }
+
+            sb.Append($"{indentation}</{Name}>");
+            return sb.ToString();
+        }
+
+        public override string ToString()
+        {
+            return ToStringImpl(1);
         }
     }
-}
 
-// High-level portion; depends on the interface
-// Low-level class Relationships can change its internals (for example, how it stores data)
-public class Research
-{
-    public Research(IRelationshipBrowser browser, string parentName)
+    public class HtmlBuilder
     {
-        var children = browser.FindAllChildrenOf(parentName);
-        foreach (var child in children)
+        private readonly string rootName;
+        public HtmlElement Root = new HtmlElement();
+
+        public HtmlBuilder(string rootName)
         {
-            Console.WriteLine($"{parentName} has a child named {child.Name}");
+            this.rootName = rootName;
+            this.Root.Name = rootName;
+        }
+
+        public void AddChild(string childName, string childText)
+        {
+            var child = new HtmlElement(childName, childText);
+            Root.Elements.Add(child);
+        }
+
+        public override string ToString()
+        {
+            return Root.ToString();
+        }
+
+        public void Clear()
+        {
+            Root = new HtmlElement() { Name = rootName };
         }
     }
 
     static void Main(string[] args)
     {
-        var parent = new Person { Name = "Cody" };
-        var child1 = new Person { Name = "Evelynn" };
-        var child2 = new Person { Name = "Teddy" };
+        var hello = "hello";
+        var sb = new StringBuilder();
+        sb.Append("<p>");
+        sb.Append(hello);
+        sb.Append("</p>");
+        Console.WriteLine(sb);
 
-        var relationships = new Relationships();
-        relationships.AddParentAndChild(parent, child1);
-        relationships.AddParentAndChild(parent, child2);
+        var words = new[] {"hello", "world"};
+        sb.Clear();
 
-        new Research(relationships, parent.Name);
+        sb.Append("<ul>");
+        foreach (var word in words)
+        {
+            sb.AppendFormat("<li>{0}</li>", word);
+        }
+        sb.Append("</ul>");
+        Console.WriteLine(sb);
+
+        var builder = new HtmlBuilder(rootName: "ul");
+        builder.AddChild("li", "hello");
+        builder.AddChild("li", "world");
+        Console.WriteLine(builder.ToString());
     }
 }
