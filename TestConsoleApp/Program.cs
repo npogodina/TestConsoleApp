@@ -1,106 +1,81 @@
-﻿using System.Text;
+﻿using System.Runtime.InteropServices;
+using System.Text;
 
 namespace DesignPatterns;
 
-// Builder pattern
-public class Program
+// Stepwise Builder pattern
+public enum CarType
 {
-    public class HtmlElement
+    Sedan,
+    SUV,
+}
+
+public class Car
+{
+    public CarType Type;
+    public int WheelSize;
+}
+
+public interface ISpecifyCarType
+{
+    public ISpecifyWheelSize OfType(CarType type);
+}
+
+public interface ISpecifyWheelSize
+{
+    public IBuildCar WithWheels(int size);
+}
+
+public interface IBuildCar
+{
+    public Car Build();
+}
+
+public class CarBuilder
+{
+    private class Impl : ISpecifyCarType, ISpecifyWheelSize, IBuildCar
     {
-        public string Name, Text;
-        public List<HtmlElement> Elements = new List<HtmlElement>();
-        public const int Indentation = 2;
+        private Car car = new Car();
 
-        public HtmlElement()
+        public ISpecifyWheelSize OfType(CarType type)
         {
-
-        }
-
-        public HtmlElement(string name, string text)
-        {
-            Name = name ?? throw new ArgumentNullException(paramName: nameof(name));
-            Text = text ?? throw new ArgumentNullException(paramName: nameof(text));
-        }
-
-        private string ToStringImpl(int indent)
-        {
-            var sb = new StringBuilder();
-            var indentation = new string(' ', Indentation * indent);
-            sb.AppendLine($"{indentation}<{Name}>");
-
-            if (!String.IsNullOrWhiteSpace(Text))
-            {
-                var textIndentation = new string(' ', Indentation * (indent + 1));
-                sb.AppendLine($"{textIndentation}{Text}");
-            }
-
-            foreach (var element in Elements)
-            {
-                var elementString = element.ToStringImpl(indent + 1);
-                sb.AppendLine(elementString);
-            }
-
-            sb.Append($"{indentation}</{Name}>");
-            return sb.ToString();
-        }
-
-        public override string ToString()
-        {
-            return ToStringImpl(1);
-        }
-    }
-
-    public class HtmlBuilder
-    {
-        private readonly string rootName;
-        public HtmlElement Root = new HtmlElement();
-
-        public HtmlBuilder(string rootName)
-        {
-            this.rootName = rootName;
-            this.Root.Name = rootName;
-        }
-
-        public HtmlBuilder AddChild(string childName, string childText)
-        {
-            var child = new HtmlElement(childName, childText);
-            Root.Elements.Add(child);
+            car.Type = type;
             return this;
         }
 
-        public override string ToString()
+        public IBuildCar WithWheels(int size)
         {
-            return Root.ToString();
+            switch (car.Type)
+            {
+                case CarType.SUV when size < 17 || size > 20:
+                case CarType.Sedan when size < 15 || size > 17:
+                    throw new ArgumentException($"Wrong wheel size for {car.Type}.");
+            }
+
+            car.WheelSize = size;
+            return this;
         }
 
-        public void Clear()
+        public Car Build()
         {
-            Root = new HtmlElement() { Name = rootName };
+            return car;
         }
     }
 
+    public static ISpecifyCarType Create()
+    {
+        return new Impl();
+    }
+}
+
+public class Program
+{
     static void Main(string[] args)
     {
-        var hello = "hello";
-        var sb = new StringBuilder();
-        sb.Append("<p>");
-        sb.Append(hello);
-        sb.Append("</p>");
-        Console.WriteLine(sb);
-
-        var words = new[] {"hello", "world"};
-        sb.Clear();
-
-        sb.Append("<ul>");
-        foreach (var word in words)
-        {
-            sb.AppendFormat("<li>{0}</li>", word);
-        }
-        sb.Append("</ul>");
-        Console.WriteLine(sb);
-
-        var builder = new HtmlBuilder(rootName: "ul");
-        builder.AddChild("li", "hello").AddChild("li", "world");
-        Console.WriteLine(builder.ToString());
+        var car = CarBuilder
+            .Create() // returns ISpecifyCarType
+            .OfType(CarType.SUV) // returns ISpecifyWheelSize
+            .WithWheels(19) // returns IBuildCar
+            .Build(); // returns Car
     }
 }
