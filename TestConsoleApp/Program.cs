@@ -1,48 +1,105 @@
-﻿using System.Runtime.InteropServices;
-using System.Text;
+﻿namespace DesignPatterns;
 
-namespace DesignPatterns;
-
-// Functional Builder pattern
+// Faceted Builder pattern
 
 public class Person
 {
-    public string Name, Position;
+    // Address
+    public string StreetAddress, Postcode, City;
+
+    // Employment
+    public string Company, Position;
+    public int Salary;
 }
 
-public sealed class PersonBuilder // sealed = can't inherit from the class
+public class PersonBuilder // Facade
 {
-    private readonly List<Func<Person, Person>> actions = new List<Func<Person, Person>>();
+    // reference!
+    protected Person person = new Person();
 
-    private PersonBuilder AddAction(Action<Person> action)
+    public PersonJobBuilder Works => new PersonJobBuilder(person);
+
+    public PersonAddressBuilder Lives => new PersonAddressBuilder(person);
+
+    //public static implicit operator Person(PersonBuilder pb)
+    //{
+    //    return pb.person;
+    //}
+
+    public Person BuildPerson()
     {
-        actions.Add(p => { action(p); return p; });
+        return person;
+    }
+}
+
+// can be inner classes of PersonBuilder to hind internals from the consumer
+
+public class PersonJobBuilder : PersonBuilder
+{
+    public PersonJobBuilder(Person person)
+    {
+        this.person = person;
+    }
+
+    public PersonJobBuilder At(string company)
+    {
+        this.person.Company = company;
         return this;
     }
 
-    public PersonBuilder Do(Action<Person> action) 
-        => AddAction(action);
+    public PersonJobBuilder As(string position)
+    {
+        this.person.Position = position;
+        return this;
+    }
 
-    public PersonBuilder Called(string name) 
-        => Do(p => p.Name = name);
-
-    public Person Build() 
-        => actions.Aggregate(new Person(), (p, f) => f(p));
+    public PersonJobBuilder Making(int salary)
+    {
+        this.person.Salary = salary;
+        return this;
+    }
 }
 
-public static class PersonBuilderExtensions // extending without inheritance
+public class PersonAddressBuilder : PersonBuilder
 {
-    public static PersonBuilder WorksAs( this PersonBuilder builder, string position)
-        => builder.Do(p => p.Position = position);
-}
+    public PersonAddressBuilder(Person person)
+    {
+        this.person = person;
+    }
 
+    public PersonAddressBuilder Street(string street)
+    {
+        this.person.StreetAddress = street;
+        return this;
+    }
+
+    public PersonAddressBuilder Postcode(string postcode)
+    {
+        this.person.Postcode = postcode;
+        return this;
+    }
+
+    public PersonAddressBuilder City(string city)
+    {
+        this.person.City = city;
+        return this;
+    }
+}
+   
 public class Program
 {
     static void Main(string[] args)
     {
-        var person = new PersonBuilder()
-            .Called("Cody")
-            .WorksAs("SRE")
-            .Build();
+        var pb = new PersonBuilder();
+        Person person = pb
+            .Works
+                .At("Microsoft")
+                .As("Software Engineer")
+                .Making(140000)
+            .Lives
+                .Street("33333 333 DR SE")
+                .Postcode("33333")
+                .City("Monroe")
+            .BuildPerson();              
     }
 }
