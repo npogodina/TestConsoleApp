@@ -3,79 +3,46 @@ using System.Text;
 
 namespace DesignPatterns;
 
-// Stepwise Builder pattern
-public enum CarType
+// Functional Builder pattern
+
+public class Person
 {
-    Sedan,
-    SUV,
+    public string Name, Position;
 }
 
-public class Car
+public sealed class PersonBuilder // sealed = can't inherit from the class
 {
-    public CarType Type;
-    public int WheelSize;
-}
+    private readonly List<Func<Person, Person>> actions = new List<Func<Person, Person>>();
 
-public interface ISpecifyCarType
-{
-    public ISpecifyWheelSize OfType(CarType type);
-}
-
-public interface ISpecifyWheelSize
-{
-    public IBuildCar WithWheels(int size);
-}
-
-public interface IBuildCar
-{
-    public Car Build();
-}
-
-public class CarBuilder
-{
-    private class Impl : ISpecifyCarType, ISpecifyWheelSize, IBuildCar
+    private PersonBuilder AddAction(Action<Person> action)
     {
-        private Car car = new Car();
-
-        public ISpecifyWheelSize OfType(CarType type)
-        {
-            car.Type = type;
-            return this;
-        }
-
-        public IBuildCar WithWheels(int size)
-        {
-            switch (car.Type)
-            {
-                case CarType.SUV when size < 17 || size > 20:
-                case CarType.Sedan when size < 15 || size > 17:
-                    throw new ArgumentException($"Wrong wheel size for {car.Type}.");
-            }
-
-            car.WheelSize = size;
-            return this;
-        }
-
-        public Car Build()
-        {
-            return car;
-        }
+        actions.Add(p => { action(p); return p; });
+        return this;
     }
 
-    public static ISpecifyCarType Create()
-    {
-        return new Impl();
-    }
+    public PersonBuilder Do(Action<Person> action) 
+        => AddAction(action);
+
+    public PersonBuilder Called(string name) 
+        => Do(p => p.Name = name);
+
+    public Person Build() 
+        => actions.Aggregate(new Person(), (p, f) => f(p));
+}
+
+public static class PersonBuilderExtensions // extending without inheritance
+{
+    public static PersonBuilder WorksAs( this PersonBuilder builder, string position)
+        => builder.Do(p => p.Position = position);
 }
 
 public class Program
 {
     static void Main(string[] args)
     {
-        var car = CarBuilder
-            .Create() // returns ISpecifyCarType
-            .OfType(CarType.SUV) // returns ISpecifyWheelSize
-            .WithWheels(19) // returns IBuildCar
-            .Build(); // returns Car
+        var person = new PersonBuilder()
+            .Called("Cody")
+            .WorksAs("SRE")
+            .Build();
     }
 }
