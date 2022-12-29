@@ -1,36 +1,25 @@
-﻿namespace Coding.Exercise
+﻿namespace Coding.Exercise;
+
+public class Foo
 {
-    public class Point
+    public Foo()
     {
-        private double x, y;
 
-        private Point(double x, double y)
-        {
-            this.x = x;
-            this.y = y;
-        }
-
-        // Factory method
-        public static Point NewCartesianPoint(double x, double y)
-        {
-            return new Point(x, y);
-        }
-
-        // Factory method:
-        // Overload with the same number of arguments!
-        // Unique names!
-        // ( = API improvement)
-        public static Point NewPolarPoint(double rho, double theta)
-        {
-            return new Point(rho * Math.Cos(theta), rho * Math.Sin(theta));
-        }
     }
 
-    public class Program
+    // One way to have an async operation in Constructor
+    public async Task<Foo> InitAsync()
     {
-        static void Main(string[] args)
-        {
-            var point = Point.NewCartesianPoint(4.50, 6.00);
-        }
+        await Task.Delay(1000);
+        return this;
+    }
+}
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var foo = new Foo();
+        await foo.InitAsync();
     }
 }
