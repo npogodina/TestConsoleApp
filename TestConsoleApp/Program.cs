@@ -1,20 +1,19 @@
-﻿namespace InnerFactory;
+﻿namespace PropertyVsSingletonField;
 
 public class Point
 {
     private double x, y;
-
-    // Public can be called to create a new cartesian point (only)
-
-    // Make internal if you are writing a library to prevent the consumers of the assembly to use it on the outside
-    // (and keep Factory outside as a separate class)
-
-    // Make private and move Factory inside Point to prevent using a constructor
     private Point(double x, double y)
     {
         this.x = x;
         this.y = y;
     }
+
+    // Property; each time called will get a new Point
+    public static Point Origin => new Point(0, 0);
+
+    // Singleton field = better; Point initialized once
+    public static Point Origin2 = new Point(0, 0);
 
     public static class Factory
     {
@@ -35,5 +34,7 @@ public class Program
     static void Main(string[] args)
     {
         var point = Point.Factory.NewCartesianPoint(4.50, 6.00);
+        var origin = Point.Origin;
+        var origin2 = Point.Origin2;
     }
 }
