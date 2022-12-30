@@ -1,63 +1,39 @@
-﻿using System.Text;
+﻿namespace InnerFactory;
 
-namespace ObjectTracking;
-
-public interface ITheme
+public class Point
 {
-    string TextColor { get; }
-    string BgrColor { get; }
-}
+    private double x, y;
 
-public class LightTheme : ITheme
-{
-    public string TextColor => "Black";
-    public string BgrColor => "White";
-}
+    // Public can be called to create a new cartesian point (only)
 
-public class DarkTheme : ITheme
-{
-    public string TextColor => "White";
-    public string BgrColor => "Dark Gray";
-}
+    // Make internal if you are writing a library to prevent the consumers of the assembly to use it on the outside
+    // (and keep Factory outside as a separate class)
 
-public class TrackingThemeFactory
-{
-    // About weak references:
-    // https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/weak-references
-    private readonly List<WeakReference<ITheme>> themes = new();
-    public ITheme CreateTheme(bool dark)
+    // Make private and move Factory inside Point to prevent using a constructor
+    private Point(double x, double y)
     {
-        ITheme theme = dark ? new DarkTheme() : new LightTheme();
-        themes.Add(new WeakReference<ITheme>(theme));
-        return theme;
+        this.x = x;
+        this.y = y;
     }
 
-    public string Info
+    public static class Factory
     {
-        get
+        public static Point NewCartesianPoint(double x, double y)
         {
-            var sb = new StringBuilder();
-            foreach (var reference in themes)
-            {
-                if (reference.TryGetTarget(out var theme))
-                {
-                    bool dark = theme is DarkTheme;
-                    sb.Append(dark ? "Dark" : "Light");
-                    sb.AppendLine(" Theme");
-                }
-            }
-            return sb.ToString();
+            return new Point(x, y);
+        }
+
+        public static Point NewPolarPoint(double rho, double theta)
+        {
+            return new Point(rho * Math.Cos(theta), rho * Math.Sin(theta));
         }
     }
 }
 
-public class Demo
+public class Program
 {
-    public static void Main(string[] args)
+    static void Main(string[] args)
     {
-        var factory = new TrackingThemeFactory();
-        var theme1 = factory.CreateTheme(false);
-        var theme2 = factory.CreateTheme(true);
-        Console.WriteLine(factory.Info);
+        var point = Point.Factory.NewCartesianPoint(4.50, 6.00);
     }
 }
