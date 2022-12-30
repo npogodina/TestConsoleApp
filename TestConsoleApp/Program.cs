@@ -1,31 +1,37 @@
 ﻿namespace Coding.Exercise;
 
-// Async Factory method allows to initialize object fully and in asynchronous manner
-
-public class Foo
+// Single Responcibility Principle:
+// Instantiaing a class is a separate responcibility!
+public static class PointFactory
 {
-    private Foo()
+    public static Point NewCartesianPoint(double x, double y)
     {
-
+        return new Point(x, y);
     }
 
-    private async Task<Foo> InitAsync()
+    public static Point NewPolarPoint(double rho, double theta)
     {
-        await Task.Delay(1000);
-        return this;
+        return new Point(rho * Math.Cos(theta), rho * Math.Sin(theta));
     }
+}
 
-    public static Task<Foo> CreateAsync()
+public class Point
+{
+    private double x, y;
+
+    // Can be called only to create a new cartesian point
+    public Point(double x, double y)
     {
-        var foo = new Foo();
-        return foo.InitAsync();
+        this.x = x;
+        this.y = y;
     }
 }
 
 public class Program
 {
-    public static async Task Main(string[] args)
+    static void Main(string[] args)
     {
-        Foo x = await Foo.CreateAsync();
+        var point = PointFactory.NewCartesianPoint(4.50, 6.00);
     }
 }
+
