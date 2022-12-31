@@ -1,40 +1,91 @@
-﻿namespace PropertyVsSingletonField;
+﻿namespace AbstractFactory;
 
-public class Point
+public enum HotDrink
 {
-    private double x, y;
-    private Point(double x, double y)
+    Tea,
+    Coffee
+}
+
+public interface IHotDrink
+{
+    void Consume();
+}
+
+internal class Tea : IHotDrink
+{
+    public void Consume()
     {
-        this.x = x;
-        this.y = y;
-    }
-
-    // Property; each time called will get a new Point
-    public static Point Origin => new Point(0, 0);
-
-    // Singleton field = better; Point initialized once
-    public static Point Origin2 = new Point(0, 0);
-
-    public static class Factory
-    {
-        public static Point NewCartesianPoint(double x, double y)
-        {
-            return new Point(x, y);
-        }
-
-        public static Point NewPolarPoint(double rho, double theta)
-        {
-            return new Point(rho * Math.Cos(theta), rho * Math.Sin(theta));
-        }
+        Console.WriteLine("This tea is nice but I'd prefer it with milk.");
     }
 }
 
-public class Program
+internal class Coffee : IHotDrink
 {
-    static void Main(string[] args)
+    public void Consume()
     {
-        var point = Point.Factory.NewCartesianPoint(4.50, 6.00);
-        var origin = Point.Origin;
-        var origin2 = Point.Origin2;
+        Console.WriteLine("This coffee is delicious!");
+    }
+}
+
+public interface IHotDrinkFactory
+{
+    IHotDrink Prepare(int amount);
+}
+
+internal class TeaFactory : IHotDrinkFactory
+{
+    public IHotDrink Prepare(int amount)
+    {
+        Console.WriteLine($"Put in tea bag, boil water, pour {amount} ml, add lemon, enjoy!");
+        return new Tea();
+    }
+}
+
+internal class CoffeeFactory : IHotDrinkFactory
+{
+    public IHotDrink Prepare(int amount)
+    {
+        Console.WriteLine($"Grind some beans, boil water, pour {amount} ml, add cream and sugar, enjoy!");
+        return new Coffee();
+    }
+}
+
+public class HotDrinkMachine
+{
+    public enum AvailableDrink
+    {
+        Tea,
+        Coffee
+    }
+
+    private Dictionary<AvailableDrink, IHotDrinkFactory> factories =
+        new Dictionary<AvailableDrink, IHotDrinkFactory>();
+
+    public HotDrinkMachine()
+    {
+        foreach (AvailableDrink drink in Enum.GetValues(typeof(AvailableDrink)))
+        {
+            var factory = (IHotDrinkFactory)Activator.CreateInstance(
+                Type.GetType("AbstractFactory." + Enum.GetName(typeof(AvailableDrink), drink) + "Factory"));
+
+            factories.Add(drink, factory);
+        }
+    }
+
+    public IHotDrink MakeDrink(AvailableDrink type, int amount)
+    {
+        var machine = factories[type];
+        var drink = machine.Prepare(amount);
+        return drink;
+    }
+}
+
+public class Demo
+{
+    public static void Main(string[] args)
+    {
+        var machine = new HotDrinkMachine();
+        var drink = machine.MakeDrink(HotDrinkMachine.AvailableDrink.Coffee, 200);
+        drink.Consume();
     }
 }
