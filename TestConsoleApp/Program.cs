@@ -6,9 +6,14 @@
 // Deep cloning = cloning all inner fields recursively
 // Shallow cloning = copying references
 
-// Copy Constructor pattern (from C++) 
+// Explicit Deep Copy Interface
 
-public class Person
+public interface IPrototype<T>
+{
+    T DeepCopy();
+}
+
+public class Person : IPrototype<Person>
 {
     public string[] Names;
     public Address Address;
@@ -19,10 +24,11 @@ public class Person
         Address = address;
     }
 
-    public Person(Person other)
+    public Person DeepCopy()
     {
-        Names = other.Names;
-        Address = new Address(other.Address);
+        var namesCopy = new string[Names.Length];
+        Array.Copy(Names, namesCopy, Names.Length);
+        return new Person(namesCopy, Address.DeepCopy());
     }
 
     public override string ToString()
@@ -31,7 +37,7 @@ public class Person
     }
 }
 
-public class Address
+public class Address : IPrototype<Address>
 {
     public string StreetName;
     public int HouseNumber;
@@ -46,6 +52,11 @@ public class Address
     {
         StreetName = streetName;
         HouseNumber = houseNumber;
+    }
+
+    public Address DeepCopy()
+    {
+        return new Address(StreetName, HouseNumber);
     }
 
     public override string ToString()
@@ -64,7 +75,7 @@ public class Demo
 
         Console.WriteLine($"John = {john.ToString()}");
 
-        var jane = new Person(john);
+        var jane = john.DeepCopy();
         Console.WriteLine($"Jane Copied from John = {jane.ToString()}");
 
         jane.Names[0] = "Jane";
