@@ -1,33 +1,75 @@
-﻿using System;
+﻿namespace Prototype;
 
-namespace Coding.Exercise
+// Prototype = a partially or fully initialized object that you (deep) copy (clone) and make use of it.
+// In a convenient manner (for example, via Factory)
+
+// Deep cloning = cloning all inner fields recursively
+// Shallow cloning = copying references
+
+// Copy Constructor pattern (from C++) 
+
+public class Person
 {
-    public class Person
+    public string[] Names;
+    public Address Address;
+
+    public Person(string[] names, Address address)
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
+        Names = names;
+        Address = address;
     }
 
-    public class PersonFactory
+    public Person(Person other)
     {
-        private int NextId = 0;
+        Names = other.Names;
+        Address = new Address(other.Address);
+    }
 
-        public PersonFactory()
-        {
+    public override string ToString()
+    {
+        return $"{nameof(Names)}: {string.Join(" ", Names)}, {nameof(Address)}: {Address}";
+    }
+}
 
-        }
+public class Address
+{
+    public string StreetName;
+    public int HouseNumber;
 
-        public Person CreatePerson(string name)
-        {
-            var person = new Person
-            {
-                Name = name,
-                Id = NextId
-            };
+    public Address(Address other)
+    {
+        StreetName = other.StreetName;
+        HouseNumber = other.HouseNumber;
+    }
 
-            NextId++;
+    public Address(string streetName, int houseNumber)
+    {
+        StreetName = streetName;
+        HouseNumber = houseNumber;
+    }
 
-            return person;
-        }
+    public override string ToString()
+    {
+        return $"{nameof(StreetName)}: {StreetName}, {nameof(HouseNumber)}: {HouseNumber}";
+    }
+}
+
+public class Demo
+{
+    public static void Main(string[] args)
+    {
+        var john = new Person(
+            new string[] { "John", "Smith" },
+            new Address("London street", 123));
+
+        Console.WriteLine($"John = {john.ToString()}");
+
+        var jane = new Person(john);
+        Console.WriteLine($"Jane Copied from John = {jane.ToString()}");
+
+        jane.Names[0] = "Jane";
+        jane.Address.HouseNumber = 456;
+        Console.WriteLine($"Jane Modified = {jane.ToString()}");
+        Console.WriteLine($"John = {john.ToString()}");
     }
 }
