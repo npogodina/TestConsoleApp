@@ -1,34 +1,60 @@
-﻿namespace Prototype;
+﻿using Newtonsoft.Json;
+using System.Xml.Serialization;
 
-// Prototype = a partially or fully initialized object that you (deep) copy (clone) and make use of it.
-// In a convenient manner (for example, via Factory)
+namespace Prototype;
 
-// Deep cloning = cloning all inner fields recursively
-// Shallow cloning = copying references
+// Copy through serialization
+// Different mechanisms can be used: XML, JSON, etc.
 
-// Explicit Deep Copy Interface
-
-public interface IPrototype<T>
+public static class ExtensionMethods
 {
-    T DeepCopy();
+    // Do not use BinaryFormatter!
+    // Due to deserialization vulnarabilities
+    // https://learn.microsoft.com/en-us/dotnet/standard/serialization/binaryformatter-security-guide
+
+    //public static T DeepCopy<T>(this T self)
+    //{
+    //    var stream = new MemoryStream();
+    //    var formatter = new BinaryFormatter();
+    //    formatter.Serialize(stream, self);
+    //    stream.Seek(0, SeekOrigin.Begin);
+    //    object copy = formatter.Deserialize(stream);
+    //    stream.Close();
+    //    return (T)copy;
+    //}
+
+    public static T DeepCopyXml<T>(this T self)
+    {
+        using (var ms = new MemoryStream()) //  to ensure that the object is disposed as soon as it goes out of scope
+        {
+            var s = new XmlSerializer(typeof(T));
+            s.Serialize(ms, self);
+            ms.Position = 0;
+            return (T) s.Deserialize(ms);
+        }
+    }
+
+    public static T DeepCopyJson<T>(this T self)
+    {
+        string json = JsonConvert.SerializeObject(self);
+        return JsonConvert.DeserializeObject<T>(json);
+    }
 }
 
-public class Person : IPrototype<Person>
+public class Person
 {
     public string[] Names;
     public Address Address;
+
+    public Person()
+    {
+
+    }
 
     public Person(string[] names, Address address)
     {
         Names = names;
         Address = address;
-    }
-
-    public Person DeepCopy()
-    {
-        var namesCopy = new string[Names.Length];
-        Array.Copy(Names, namesCopy, Names.Length);
-        return new Person(namesCopy, Address.DeepCopy());
     }
 
     public override string ToString()
@@ -37,26 +63,20 @@ public class Person : IPrototype<Person>
     }
 }
 
-public class Address : IPrototype<Address>
+public class Address
 {
     public string StreetName;
     public int HouseNumber;
 
-    public Address(Address other)
+    public Address()
     {
-        StreetName = other.StreetName;
-        HouseNumber = other.HouseNumber;
+
     }
 
     public Address(string streetName, int houseNumber)
     {
         StreetName = streetName;
         HouseNumber = houseNumber;
-    }
-
-    public Address DeepCopy()
-    {
-        return new Address(StreetName, HouseNumber);
     }
 
     public override string ToString()
@@ -75,7 +95,11 @@ public class Demo
 
         Console.WriteLine($"John = {john.ToString()}");
 
-        var jane = john.DeepCopy();
+        var jane = john.DeepCopyXml();
+        
+        // Alternative:
+        //var jane = john.DeepCopyJson();
+
         Console.WriteLine($"Jane Copied from John = {jane.ToString()}");
 
         jane.Names[0] = "Jane";
