@@ -1,110 +1,71 @@
-﻿using Newtonsoft.Json;
-using System.Xml.Serialization;
-
-namespace Prototype;
-
-// Copy through serialization
-// Different mechanisms can be used: XML, JSON, etc.
-
-public static class ExtensionMethods
+﻿namespace Coding.Exercise
 {
-    // Do not use BinaryFormatter!
-    // Due to deserialization vulnarabilities
-    // https://learn.microsoft.com/en-us/dotnet/standard/serialization/binaryformatter-security-guide
-
-    //public static T DeepCopy<T>(this T self)
-    //{
-    //    var stream = new MemoryStream();
-    //    var formatter = new BinaryFormatter();
-    //    formatter.Serialize(stream, self);
-    //    stream.Seek(0, SeekOrigin.Begin);
-    //    object copy = formatter.Deserialize(stream);
-    //    stream.Close();
-    //    return (T)copy;
-    //}
-
-    public static T DeepCopyXml<T>(this T self)
+    public interface IDeepCopiable<T>
     {
-        using (var ms = new MemoryStream()) //  to ensure that the object is disposed as soon as it goes out of scope
+        T DeepCopy();
+    }
+
+
+    public class Point : IDeepCopiable<Point>
+    {
+        public int X, Y;
+
+        public Point DeepCopy()
         {
-            var s = new XmlSerializer(typeof(T));
-            s.Serialize(ms, self);
-            ms.Position = 0;
-            return (T) s.Deserialize(ms);
+            return new Point
+            {
+                X = this.X,
+                Y = this.Y
+            };
         }
     }
 
-    public static T DeepCopyJson<T>(this T self)
+    public class Line : IDeepCopiable<Line>
     {
-        string json = JsonConvert.SerializeObject(self);
-        return JsonConvert.DeserializeObject<T>(json);
-    }
-}
+        public Point Start, End;
 
-public class Person
-{
-    public string[] Names;
-    public Address Address;
+        public Line DeepCopy()
+        {
+            return new Line
+            {
+                Start = this.Start.DeepCopy(),
+                End = this.End.DeepCopy()
+            };
+        }
 
-    public Person()
-    {
-
-    }
-
-    public Person(string[] names, Address address)
-    {
-        Names = names;
-        Address = address;
+        public override string ToString()
+        {
+            return $"Line: Start = {Start.X}, {Start.Y}; End = {End.X}, {End.Y}";
+        }
     }
 
-    public override string ToString()
+    public class Demo
     {
-        return $"{nameof(Names)}: {string.Join(" ", Names)}, {nameof(Address)}: {Address}";
-    }
-}
+        public static void Main(string[] args)
+        {
+            var line = new Line
+            {
+                Start = new Point
+                {
+                    X = 1,
+                    Y = 2
+                },
+                End = new Point
+                {
+                    X = 3,
+                    Y = 4
+                }
+            };
 
-public class Address
-{
-    public string StreetName;
-    public int HouseNumber;
+            Console.WriteLine($"Original. {line.ToString()}");
 
-    public Address()
-    {
+            var lineCopy = line.DeepCopy();
+            Console.WriteLine($"Copy. {lineCopy.ToString()}");
 
-    }
+            lineCopy.Start.X = 9;
+            Console.WriteLine($"Modified Copy. {lineCopy.ToString()}");
 
-    public Address(string streetName, int houseNumber)
-    {
-        StreetName = streetName;
-        HouseNumber = houseNumber;
-    }
-
-    public override string ToString()
-    {
-        return $"{nameof(StreetName)}: {StreetName}, {nameof(HouseNumber)}: {HouseNumber}";
-    }
-}
-
-public class Demo
-{
-    public static void Main(string[] args)
-    {
-        var john = new Person(
-            new string[] { "John", "Smith" },
-            new Address("London street", 123));
-
-        Console.WriteLine($"John = {john.ToString()}");
-
-        var jane = john.DeepCopyXml();
-        
-        // Alternative:
-        //var jane = john.DeepCopyJson();
-
-        Console.WriteLine($"Jane Copied from John = {jane.ToString()}");
-
-        jane.Names[0] = "Jane";
-        jane.Address.HouseNumber = 456;
-        Console.WriteLine($"Jane Modified = {jane.ToString()}");
-        Console.WriteLine($"John = {john.ToString()}");
+            Console.WriteLine($"Original. {line.ToString()}");
+        }
     }
 }
