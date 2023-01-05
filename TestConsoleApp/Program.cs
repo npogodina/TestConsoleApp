@@ -62,6 +62,41 @@ public class SingletonRecordFinder
     }
 }
 
+public class ConfigurableRecordFinder
+{
+    private IDatabase database;
+
+    public ConfigurableRecordFinder(IDatabase database)
+    {
+        this.database = database ?? throw new ArgumentNullException(paramName: nameof(database));
+    }
+
+    public int GetTotalPopulation(IEnumerable<string> names)
+    {
+        var result = 0;
+        foreach (var city in names)
+        {
+            result += database.GetPopulation(city);
+        }
+        return result;
+    }
+}
+
+public class DummyDatabase : IDatabase
+{
+    public int GetPopulation(string city)
+    {
+        var records = new Dictionary<string, int>
+        {
+            { "alpha", 1 },
+            { "beta", 2 },
+            { "gamma", 3 }
+        };
+
+        return records[city];
+    }
+}
+
 // Project has more than one entry issue:
 // Occurred after adding NuGet package Microsoft.NET.Test.Sdk
 // https://stackoverflow.com/questions/11747761/i-added-a-new-class-to-my-project-and-got-an-error-saying-program-main-has-mo
@@ -92,6 +127,17 @@ public class SingletonTests
         var totalPopulation = recordFinder.GetTotalPopulation(cities);
 
         Assert.AreEqual(33200000 + 17800000, totalPopulation);
+    }
+
+    [Test]
+    public void GetTotalPopulationConfigurable()
+    {
+        var db = new DummyDatabase();
+        var recordFinder = new ConfigurableRecordFinder(db);
+        var cities = new string[] { "alpha", "beta" };
+        var totalPopulation = recordFinder.GetTotalPopulation(cities);
+
+        Assert.That(totalPopulation, Is.EqualTo(3));
     }
 }
 
