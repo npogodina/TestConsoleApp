@@ -1,4 +1,8 @@
-﻿using MoreLinq;
+﻿// Autofac is an IoC (Invertion of Control) container for Microsoft.NET.
+// It manages the dependencies between classes so that applications stay easy to change as they grow in size and complexity.
+using Autofac;
+
+using MoreLinq;
 using NUnit.Framework;
 
 namespace Singleton;
@@ -15,6 +19,8 @@ namespace Singleton;
 // - provide everyone with the same instance
 // 3) Want to prevent anyone from creating additinal copies
 // 4) Need to take care of lazy instantiation and threat safety
+
+// Pattern: create a non-singleton class and use it as singleton via Dependency Injection
 
 public interface IDatabase
 {
@@ -49,6 +55,41 @@ public class SingletonDatabase : IDatabase
     }
 }
 
+public class OrdinaryDatabase : IDatabase
+{
+    private Dictionary<string, int> capitals;
+
+    public OrdinaryDatabase()
+    {
+        Console.WriteLine("Initializing database...");
+        capitals = File.ReadAllLines("Capitals.txt")
+            .Batch(2)
+            .ToDictionary(
+                list => list.ElementAt(0).Trim(),
+                list => int.Parse(list.ElementAt(1)));
+    }
+
+    public int GetPopulation(string city)
+    {
+        return capitals[city];
+    }
+}
+
+public class DummyDatabase : IDatabase
+{
+    public int GetPopulation(string city)
+    {
+        var records = new Dictionary<string, int>
+        {
+            { "alpha", 1 },
+            { "beta", 2 },
+            { "gamma", 3 }
+        };
+
+        return records[city];
+    }
+}
+
 public class SingletonRecordFinder
 {
     public int GetTotalPopulation(IEnumerable<string> names)
@@ -79,21 +120,6 @@ public class ConfigurableRecordFinder
             result += database.GetPopulation(city);
         }
         return result;
-    }
-}
-
-public class DummyDatabase : IDatabase
-{
-    public int GetPopulation(string city)
-    {
-        var records = new Dictionary<string, int>
-        {
-            { "alpha", 1 },
-            { "beta", 2 },
-            { "gamma", 3 }
-        };
-
-        return records[city];
     }
 }
 
@@ -138,6 +164,48 @@ public class SingletonTests
         var totalPopulation = recordFinder.GetTotalPopulation(cities);
 
         Assert.That(totalPopulation, Is.EqualTo(3));
+    }
+
+    [Test]
+    public void GetTotalPopulationDependencyInjectionWithAutofac()
+    {
+        var cb = new ContainerBuilder();
+        cb.RegisterType<OrdinaryDatabase>()
+            .As<IDatabase>()
+            .SingleInstance();
+
+        cb.RegisterType<ConfigurableRecordFinder>();
+
+        using (var c = cb.Build())
+        {
+            var recordFinder = c.Resolve<ConfigurableRecordFinder>();
+
+            var cities = new string[] { "Tokyo", "New York" };
+            var totalPopulation = recordFinder.GetTotalPopulation(cities);
+
+            Assert.AreEqual(33200000 + 17800000, totalPopulation);
+        }
+    }
+
+    [Test]
+    public void GetTotalPopulationDependencyInjectionWithAutofac2()
+    {
+        var cb = new ContainerBuilder();
+        cb.RegisterType<DummyDatabase>()
+            .As<IDatabase>()
+            .SingleInstance();
+
+        cb.RegisterType<ConfigurableRecordFinder>();
+
+        using (var c = cb.Build())
+        {
+            var recordFinder = c.Resolve<ConfigurableRecordFinder>();
+
+            var cities = new string[] { "alpha", "beta" };
+            var totalPopulation = recordFinder.GetTotalPopulation(cities);
+
+            Assert.That(totalPopulation, Is.EqualTo(3));
+        }
     }
 }
 
