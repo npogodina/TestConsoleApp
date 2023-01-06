@@ -1,113 +1,26 @@
-﻿using System.Text;
+﻿using System;
 
-namespace Singleton;
-
-// Ambient Context pattern
-
-// Assumes there is one thread
-// Alternatively can write a per thread singleton implementation
-// (each thread will have its own BuildingContext)
-
-public sealed class BuildingContext : IDisposable
+namespace Coding.Exercise
 {
-    public int WallHeight = 0;
-
-    private static Stack<BuildingContext> stack = new Stack<BuildingContext>();
-
-    static BuildingContext()
+    public class SingletonTester
     {
-        // Ensure there's at least one state
-        new BuildingContext(3000);
-    }
-
-    public BuildingContext(int height)
-    {
-        WallHeight = height;
-        stack.Push(this);
-    }
-
-    public static BuildingContext Current => stack.Peek();
-
-    public void Dispose()
-    {
-        // not strictly necessary
-        if (stack.Count > 1)
+        /// <summary>
+        /// Determines if an object created by factory method is a singleton or not
+        /// </summary>
+        /// <param name="func">Factory method</param>
+        public static bool IsSingleton(Func<object> func)
         {
-            stack.Pop();
+            // Get two objects and check for referential equality.
+            // Reference equality means that the object variables that are compared refer to the same object. 
+            // https://learn.microsoft.com/en-us/dotnet/api/system.object.equals?view=net-7.0
+
+            var obj1 = func();
+            var obj2 = func();
+
+            return obj1.Equals(obj2);
+
+            // Alternative:
+            // return ReferenceEquals(obj1, obj2);
         }
-    }
-}
-
-public class Building
-{
-    public readonly List<Wall> Walls = new List<Wall>();
-
-    public override string ToString()
-    {
-        var sb = new StringBuilder();
-        foreach (var wall in Walls)
-        {
-            sb.AppendLine(wall.ToString());
-        }
-        return sb.ToString();
-    }
-}
-
-public struct Point
-{
-    private int X, Y;
-
-    public Point(int x, int y)
-    {
-        X = x;
-        Y = y;
-    }
-
-    public override string ToString()
-    {
-        return $"{nameof(X)}: {X}, {nameof(Y)}: {Y}";
-    }
-}
-
-public class Wall
-{
-    public Point Start, End;
-    public int Height;
-
-    public Wall(Point start, Point end)
-    {
-        Start = start;
-        End = end;
-        Height = BuildingContext.Current.WallHeight;
-    }
-
-    public override string ToString()
-    {
-        return $"{nameof(Start)}: {Start}, {nameof(End)}: {End}, " + $"{nameof(Height)}: {Height}";
-    }
-}
-
-public class Demo
-{
-    public static void Main(string[] args)
-    {
-        var house = new Building();
-
-        // ground floor
-        house.Walls.Add(new Wall(new Point(0, 0), new Point(5000, 0)));
-        house.Walls.Add(new Wall(new Point(0, 0), new Point(0, 5000)));
-
-        // first floor
-        using (new BuildingContext(4000))
-        {
-            house.Walls.Add(new Wall(new Point(0, 0), new Point(5000, 0)));
-            house.Walls.Add(new Wall(new Point(0, 0), new Point(0, 5000)));
-        }
-
-        // back to the ground floor
-        house.Walls.Add(new Wall(new Point(0, 0), new Point(5000, 0)));
-        house.Walls.Add(new Wall(new Point(0, 0), new Point(0, 5000)));
-
-        Console.WriteLine(house.ToString());
     }
 }
