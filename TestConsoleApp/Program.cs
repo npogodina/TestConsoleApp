@@ -1,4 +1,5 @@
 ﻿using MoreLinq;
+using System.Collections;
 using System.Collections.ObjectModel;
 
 namespace Adapter;
@@ -15,7 +16,7 @@ public class Point
 		this.Y = y;
 	}
 
-    public override string ToString()
+	public override string ToString()
     {
         return $"{nameof(X)}: {X}, {nameof(Y)}: {Y}";
     }
@@ -48,19 +49,30 @@ public class VectorRectangle : VectorObject
     }
 }
 
-
 // ? Assumes lines can only be vertical or horizontals 
 // (for a rectangle, no diagonals)
-public class LineToPointAdapter : Collection<Point>
+public class LineToPointAdapter : IEnumerable<Point> // so that we can use MoreLinq methods on it in Demo
 {
 	/// <summary>
 	/// Counts invocations
 	/// </summary>
 	private static int count = 0;
 
-	public LineToPointAdapter(Line line)
+	/// <summary>
+	/// Key = hashcode of a line
+	/// </summary>
+	private static Dictionary<int, List<Point>> cache = new Dictionary<int, List<Point>>();
+    
+	private int hash;
+
+    public LineToPointAdapter(Line line)
 	{
-        Console.WriteLine($"\n{++count}: Generating points for line [{line.Start.X},{line.Start.Y}]-[{line.End.X},{line.End.Y}] (no caching)");
+		this.hash = line.GetHashCode(); // override suggested for objects, not doing for simplicity
+		if (cache.ContainsKey(hash)) return;
+
+		var points = new List<Point>();
+
+        Console.WriteLine($"\n{++count}: Generating points for line [{line.Start.X},{line.Start.Y}]-[{line.End.X},{line.End.Y}] (with caching)");
 
 		int left = Math.Min(line.Start.X, line.End.X);
 		int right = Math.Max(line.Start.X, line.End.X);
@@ -77,16 +89,29 @@ public class LineToPointAdapter : Collection<Point>
 		{
 			for (int y = bottom; y <= top; y++)
 			{
-				Add(new Point(left, y));
+				points.Add(new Point(left, y));
 
 			}
 		} else if (dy == 0)
 		{
 			for (int x = left; x <= right; x++)
 			{
-				Add(new Point(x, top));
+				points.Add(new Point(x, top));
 			}
 		}
+
+		cache.Add(hash, points);
+    }
+
+    public IEnumerator<Point> GetEnumerator()
+    {
+		//return cache.Values.SelectMany(x => x).GetEnumerator();
+		return cache[hash].GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        throw new NotImplementedException();
     }
 }
 
@@ -106,7 +131,11 @@ public class Demo
 
 	public static void Main(string[] args)
 	{
+		Console.WriteLine("Drawing for the first time");
 		//DrawPoint(new Point(1, 1));
+		Draw();
+
+		Console.WriteLine("\n\nDrawing for the second time");
 		Draw();
 	}
 
