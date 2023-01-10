@@ -1,36 +1,73 @@
-﻿using System;
+﻿namespace Bridge;
 
-namespace Coding.Exercise
+// Mechanism that decouples an interface hierarchy from an implementation hierarchy
+
+// Connects components together through abstractions (Interface or Abstract classes)
+// Allows to avoid entity explosion 
+
+public interface IRenderer
 {
-    public class Square
+    void RenderCircle(float radius);
+}
+
+public class VectorRenderer : IRenderer
+{
+    public void RenderCircle(float radius)
     {
-        public int Side;
+        Console.WriteLine($"Drawing a circle of radius {radius}");
+    }
+}
+
+public class RasterRenderer : IRenderer
+{
+    public void RenderCircle(float radius)
+    {
+        Console.WriteLine($"Drawing pixels for circle of radius {radius}");
+    }
+}
+
+public abstract class Shape
+{
+    protected IRenderer renderer;
+
+    // Bridge between the shape that's being drawn and the component that draws it
+    public Shape(IRenderer renderer)
+    {
+        this.renderer = renderer;
     }
 
-    public interface IRectangle
+    public abstract void Draw();
+    public abstract void Resize(float factor);
+}
+
+public class Circle : Shape
+{
+    private float radius;
+
+    public Circle(IRenderer renderer, float radius) : base(renderer)
     {
-        int Width { get; }
-        int Height { get; }
+        this.radius = radius;
     }
 
-    public static class ExtensionMethods
+    public override void Draw()
     {
-        public static int Area(this IRectangle rc)
-        {
-            return rc.Width * rc.Height;
-        }
+        renderer.RenderCircle(radius);
     }
 
-    // Try to define a SquareToRectangleAdapter  that adapts the Square  to the IRectangle  interface.
-    public class SquareToRectangleAdapter : IRectangle
+    public override void Resize(float factor)
     {
-        public int Width { get; }
-        public int Height { get; }
+        radius= radius * factor;
+    }
+}
 
-        // Takes a Square and turns it into IRectangle as an instace of SquareToRectangleAdapter
-        public SquareToRectangleAdapter(Square square)
-        {
-            this.Width = this.Height = square.Side;
-        }
+public class Demo
+{
+    static void Main(string[] args)
+    {
+        var raster = new RasterRenderer();
+        var circle = new Circle(raster, 5);
+        circle.Draw();
+        circle.Resize(2);
+        circle.Draw();
     }
 }
