@@ -1,73 +1,55 @@
-﻿namespace Bridge;
+﻿namespace DependencyInjection;
 
-// Mechanism that decouples an interface hierarchy from an implementation hierarchy
+// Credit: https://youtu.be/fvPPlY31glk (by Claudio Bernasconi)
 
-// Connects components together through abstractions (Interface or Abstract classes)
-// Allows to avoid entity explosion 
+// Dependency Inversion Principle (one of the SOLI >> D << principles of OOP)
+// High level modules should not depend on low level modules, but on abstractions.
+// Implementation details should depend on abstractions.
 
-public interface IRenderer
+public interface INotificationService
 {
-    void RenderCircle(float radius);
+	public void NotifyUsernameChanged(User user);
 }
 
-public class VectorRenderer : IRenderer
+// High level module
+public class User
 {
-    public void RenderCircle(float radius)
-    {
-        Console.WriteLine($"Drawing a circle of radius {radius}");
-    }
+    public string UserName { get; private set; }
+
+	private INotificationService _notificationService;
+
+	// Injecting concrete class implementing INotificationService abstraction through constructor
+	public User(string name, INotificationService notificationService)
+	{
+		UserName = name;
+		_notificationService = notificationService;
+	}
+
+	public void ChangeUsername(string username)
+	{ 
+		UserName = username;
+		_notificationService.NotifyUsernameChanged(this);
+	}
 }
 
-public class RasterRenderer : IRenderer
+// Low level module (implementation details)
+public class NotificationService : INotificationService
 {
-    public void RenderCircle(float radius)
-    {
-        Console.WriteLine($"Drawing pixels for circle of radius {radius}");
-    }
-}
-
-public abstract class Shape
-{
-    protected IRenderer renderer;
-
-    // Bridge between the shape that's being drawn and the component that draws it
-    public Shape(IRenderer renderer)
-    {
-        this.renderer = renderer;
-    }
-
-    public abstract void Draw();
-    public abstract void Resize(float factor);
-}
-
-public class Circle : Shape
-{
-    private float radius;
-
-    public Circle(IRenderer renderer, float radius) : base(renderer)
-    {
-        this.radius = radius;
-    }
-
-    public override void Draw()
-    {
-        renderer.RenderCircle(radius);
-    }
-
-    public override void Resize(float factor)
-    {
-        radius= radius * factor;
-    }
+	public void NotifyUsernameChanged(User user)
+	{
+		Console.WriteLine($"Username changed to {user.UserName}.");
+	}
 }
 
 public class Demo
 {
-    static void Main(string[] args)
-    {
-        var raster = new RasterRenderer();
-        var circle = new Circle(raster, 5);
-        circle.Draw();
-        circle.Resize(2);
-        circle.Draw();
-    }
+	public static void Main(string[] args)
+	{
+		var notificationService = new NotificationService();
+
+        // Injecting concrete class implementing INotificationService abstraction through constructor
+        var user = new User("Cody", notificationService);
+
+		user.ChangeUsername("Cody Farmer");
+	}
 }
