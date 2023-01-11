@@ -1,87 +1,67 @@
-﻿using Autofac;
+﻿using System;
 
-namespace Bridge;
-
-// Mechanism that decouples an interface hierarchy from an implementation hierarchy
-
-// Connects components together through abstractions (Interface or Abstract classes)
-// Allows to avoid entity explosion 
-
-public interface IRenderer
+namespace Coding.Exercise
 {
-    void RenderCircle(float radius);
-}
+    // In mathematics, the Cartesian Product of sets A and B is defined as the set of all ordered pairs (x, y)
+    // such that x belongs to A and y belongs to B.
+    // For example, if A = {1, 2} and B = {3, 4, 5},
+    // then the Cartesian Product of A and B is {(1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)}
+    //
+    // You are given an example of an inheritance hierarchy which results in Cartesian-product duplication:
+    // Set A = shapes = Triangle, Square
+    // Set B = drawing type = Vector, Raster
+    // Cartesian Product: Vector Triangle, Vector Square, Raster Triangle, Raster Square
 
-public class VectorRenderer : IRenderer
-{
-    public void RenderCircle(float radius)
+    public interface IRenderer
     {
-        Console.WriteLine($"Drawing a circle of radius {radius}");
-    }
-}
-
-public class RasterRenderer : IRenderer
-{
-    public void RenderCircle(float radius)
-    {
-        Console.WriteLine($"Drawing pixels for circle of radius {radius}");
-    }
-}
-
-public abstract class Shape
-{
-    protected IRenderer renderer;
-
-    // Bridge between the shape that's being drawn and the component that draws it
-    public Shape(IRenderer renderer)
-    {
-        this.renderer = renderer;
+        string WhatToRenderAs { get; }
     }
 
-    public abstract void Draw();
-    public abstract void Resize(float factor);
-}
-
-public class Circle : Shape
-{
-    private float radius;
-
-    public Circle(IRenderer renderer, float radius) : base(renderer)
+    public class VectorRenderer : IRenderer
     {
-        this.radius = radius;
+        public string WhatToRenderAs => "lines";
     }
 
-    public override void Draw()
+    public class RasterRenderer : IRenderer
     {
-        renderer.RenderCircle(radius);
+        public string WhatToRenderAs => "pixels";
     }
 
-    public override void Resize(float factor)
+    public abstract class Shape
     {
-        radius = radius * factor;
-    }
-}
+        public string Name { get; set; }
 
-public class Demo
-{
-    static void Main(string[] args)
-    {
-        //var raster = new RasterRenderer();
-        //var circle = new Circle(raster, 5);
-        //circle.Draw();
-        //circle.Resize(2);
-        //circle.Draw();
+        protected IRenderer _renderer;
 
-        var cb = new ContainerBuilder();
-        cb.RegisterType<VectorRenderer>().As<IRenderer>().SingleInstance();
-        cb.Register((c, p) => new Circle(c.Resolve<IRenderer>(), p.Positional<float>(0)));
-
-        using (var c = cb.Build())
+        public Shape(IRenderer renderer)
         {
-            var circle = c.Resolve<Circle>(new PositionalParameter(0, 5.0f));
-            circle.Draw();
-            circle.Resize(2);
-            circle.Draw();
+            _renderer = renderer;
+        }
+    }
+
+    public class Triangle : Shape
+    {
+        public Triangle(IRenderer renderer) : base(renderer)
+        {
+            Name = "Triangle";
+        }
+
+        public override string ToString()
+        {
+            return $"Drawing {Name} as {_renderer.WhatToRenderAs}";
+        }
+    }
+
+    public class Square : Shape
+    {
+        public Square(IRenderer renderer) : base(renderer)
+        {
+            Name = "Square";
+        }
+
+        public override string ToString()
+        {
+            return $"Drawing {Name} as {_renderer.WhatToRenderAs}";
         }
     }
 }
