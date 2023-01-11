@@ -1,80 +1,87 @@
 ﻿using Autofac;
 
-namespace DependencyInjection;
+namespace Bridge;
 
-// Credit: https://youtu.be/fvPPlY31glk (by Claudio Bernasconi)
+// Mechanism that decouples an interface hierarchy from an implementation hierarchy
 
-// Dependency Inversion Principle (one of the SOLI >> D << principles of OOP)
-// High level modules should not depend on low level modules, but on abstractions.
-// Implementation details should depend on abstractions.
+// Connects components together through abstractions (Interface or Abstract classes)
+// Allows to avoid entity explosion 
 
-public interface INotificationService
+public interface IRenderer
 {
-	public void NotifyUsernameChanged(User user);
+    void RenderCircle(float radius);
 }
 
-// High level module, simple class with no dependencies
-// Responsibility = represent user
-public class User
+public class VectorRenderer : IRenderer
 {
-    public string UserName { get; set; }
-
-	public User(string name)
-	{
-		UserName = name;
-	}
-}
-
-// Responsibility = make changes to users
-public class UserService
-{
-	private INotificationService _notificationService;
-
-	public UserService(INotificationService notificationService)
-	{
-		_notificationService = notificationService;
-	}
-
-	public void ChangeUserName(User user, string userName)
-	{
-		user.UserName = userName;
-		_notificationService.NotifyUsernameChanged(user);
-	}
-}
-
-
-// Low level module (implementation details)
-// Responsibility = notify customer of changes
-public class NotificationService : INotificationService
-{
-	public void NotifyUsernameChanged(User user)
-	{
-		Console.WriteLine($"Username changed to {user.UserName}.");
-	}
-}
-
-internal class DemoModule : Module
-{
-    protected override void Load(ContainerBuilder builder)
+    public void RenderCircle(float radius)
     {
-        builder.RegisterType<NotificationService>().As<INotificationService>();
-        builder.RegisterType<UserService>().AsSelf();
+        Console.WriteLine($"Drawing a circle of radius {radius}");
+    }
+}
+
+public class RasterRenderer : IRenderer
+{
+    public void RenderCircle(float radius)
+    {
+        Console.WriteLine($"Drawing pixels for circle of radius {radius}");
+    }
+}
+
+public abstract class Shape
+{
+    protected IRenderer renderer;
+
+    // Bridge between the shape that's being drawn and the component that draws it
+    public Shape(IRenderer renderer)
+    {
+        this.renderer = renderer;
+    }
+
+    public abstract void Draw();
+    public abstract void Resize(float factor);
+}
+
+public class Circle : Shape
+{
+    private float radius;
+
+    public Circle(IRenderer renderer, float radius) : base(renderer)
+    {
+        this.radius = radius;
+    }
+
+    public override void Draw()
+    {
+        renderer.RenderCircle(radius);
+    }
+
+    public override void Resize(float factor)
+    {
+        radius = radius * factor;
     }
 }
 
 public class Demo
 {
-	public static void Main(string[] args)
-	{
-		var containerBuilder = new ContainerBuilder();
-		containerBuilder.RegisterModule<DemoModule>();
-	
-		var container = containerBuilder.Build();
+    static void Main(string[] args)
+    {
+        //var raster = new RasterRenderer();
+        //var circle = new Circle(raster, 5);
+        //circle.Draw();
+        //circle.Resize(2);
+        //circle.Draw();
 
-		var notificationService = container.Resolve<INotificationService>();
-		var userService = container.Resolve<UserService>();
+        var cb = new ContainerBuilder();
+        cb.RegisterType<VectorRenderer>().As<IRenderer>().SingleInstance();
+        cb.Register((c, p) => new Circle(c.Resolve<IRenderer>(), p.Positional<float>(0)));
 
-        var user = new User("Cody");
-		userService.ChangeUserName(user, "Cody Farmer");
-	}
+        using (var c = cb.Build())
+        {
+            var circle = c.Resolve<Circle>(new PositionalParameter(0, 5.0f));
+            circle.Draw();
+            circle.Resize(2);
+            circle.Draw();
+        }
+    }
 }
