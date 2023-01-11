@@ -1,4 +1,6 @@
-﻿namespace DependencyInjection;
+﻿using Autofac;
+
+namespace DependencyInjection;
 
 // Credit: https://youtu.be/fvPPlY31glk (by Claudio Bernasconi)
 
@@ -11,28 +13,38 @@ public interface INotificationService
 	public void NotifyUsernameChanged(User user);
 }
 
-// High level module
+// High level module, simple class with no dependencies
+// Responsibility = represent user
 public class User
 {
-    public string UserName { get; private set; }
+    public string UserName { get; set; }
 
-	private INotificationService _notificationService;
-
-	// Injecting concrete class implementing INotificationService abstraction through constructor
-	public User(string name, INotificationService notificationService)
+	public User(string name)
 	{
 		UserName = name;
-		_notificationService = notificationService;
-	}
-
-	public void ChangeUsername(string username)
-	{ 
-		UserName = username;
-		_notificationService.NotifyUsernameChanged(this);
 	}
 }
 
+// Responsibility = make changes to users
+public class UserService
+{
+	private INotificationService _notificationService;
+
+	public UserService(INotificationService notificationService)
+	{
+		_notificationService = notificationService;
+	}
+
+	public void ChangeUserName(User user, string userName)
+	{
+		user.UserName = userName;
+		_notificationService.NotifyUsernameChanged(user);
+	}
+}
+
+
 // Low level module (implementation details)
+// Responsibility = notify customer of changes
 public class NotificationService : INotificationService
 {
 	public void NotifyUsernameChanged(User user)
@@ -41,15 +53,28 @@ public class NotificationService : INotificationService
 	}
 }
 
+internal class DemoModule : Module
+{
+    protected override void Load(ContainerBuilder builder)
+    {
+        builder.RegisterType<NotificationService>().As<INotificationService>();
+        builder.RegisterType<UserService>().AsSelf();
+    }
+}
+
 public class Demo
 {
 	public static void Main(string[] args)
 	{
-		var notificationService = new NotificationService();
+		var containerBuilder = new ContainerBuilder();
+		containerBuilder.RegisterModule<DemoModule>();
+	
+		var container = containerBuilder.Build();
 
-        // Injecting concrete class implementing INotificationService abstraction through constructor
-        var user = new User("Cody", notificationService);
+		var notificationService = container.Resolve<INotificationService>();
+		var userService = container.Resolve<UserService>();
 
-		user.ChangeUsername("Cody Farmer");
+        var user = new User("Cody");
+		userService.ChangeUserName(user, "Cody Farmer");
 	}
 }
