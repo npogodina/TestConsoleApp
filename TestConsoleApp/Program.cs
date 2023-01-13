@@ -1,67 +1,62 @@
-﻿using System;
+﻿using System.Text;
 
-namespace Coding.Exercise
+namespace Composite;
+
+// Allows to treat both single objects and composite objects (grouping of objects) uniformly
+// For example, Foo and Collection<Foo> have common APIs
+
+public class GraphicObject
 {
-    // In mathematics, the Cartesian Product of sets A and B is defined as the set of all ordered pairs (x, y)
-    // such that x belongs to A and y belongs to B.
-    // For example, if A = {1, 2} and B = {3, 4, 5},
-    // then the Cartesian Product of A and B is {(1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)}
-    //
-    // You are given an example of an inheritance hierarchy which results in Cartesian-product duplication:
-    // Set A = shapes = Triangle, Square
-    // Set B = drawing type = Vector, Raster
-    // Cartesian Product: Vector Triangle, Vector Square, Raster Triangle, Raster Square
+    public virtual string Name { get; set; } = "Group";
+    public string Color;
 
-    public interface IRenderer
+
+    private Lazy<List<GraphicObject>> children = new Lazy<List<GraphicObject>>();
+    public List<GraphicObject> Children => children.Value;
+
+    public override string ToString()
     {
-        string WhatToRenderAs { get; }
+        var sb = new StringBuilder();
+        Print(sb, 0);
+        return sb.ToString();
     }
 
-    public class VectorRenderer : IRenderer
+    private void Print(StringBuilder sb, int depth)
     {
-        public string WhatToRenderAs => "lines";
-    }
+        sb.Append(new string('>', depth))
+          .Append(string.IsNullOrWhiteSpace(Color) ? string.Empty : $"{Color} ") // continue here
+          .AppendLine(Name);
 
-    public class RasterRenderer : IRenderer
-    {
-        public string WhatToRenderAs => "pixels";
-    }
-
-    public abstract class Shape
-    {
-        public string Name { get; set; }
-
-        protected IRenderer _renderer;
-
-        public Shape(IRenderer renderer)
+        foreach (var child in Children)
         {
-            _renderer = renderer;
+            child.Print(sb, depth + 1);
         }
     }
+}
 
-    public class Triangle : Shape
+public class Circle : GraphicObject
+{
+    public override string Name => "Circle";
+}
+
+public class Square : GraphicObject
+{
+    public override string Name => "Square";
+}
+
+public class Demo
+{
+    static void Main(string[] args)
     {
-        public Triangle(IRenderer renderer) : base(renderer)
-        {
-            Name = "Triangle";
-        }
+        var drawing = new GraphicObject { Name = "My Drawing" };
+        drawing.Children.Add(new Square { Color = "Red" });
+        drawing.Children.Add(new Circle { Color = "Yellow" });
 
-        public override string ToString()
-        {
-            return $"Drawing {Name} as {_renderer.WhatToRenderAs}";
-        }
-    }
+        var group = new GraphicObject();
+        group.Children.Add(new Circle { Color = "Blue" });
+        group.Children.Add(new Square { Color = "Blue" });
+        drawing.Children.Add(group);
 
-    public class Square : Shape
-    {
-        public Square(IRenderer renderer) : base(renderer)
-        {
-            Name = "Square";
-        }
-
-        public override string ToString()
-        {
-            return $"Drawing {Name} as {_renderer.WhatToRenderAs}";
-        }
+        Console.WriteLine(drawing);
     }
 }
