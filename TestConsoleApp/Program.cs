@@ -1,44 +1,82 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿namespace Decorator;
 
-namespace Coding.Exercise
+// Facilitates the addition of behaviors to individual objects without inheriing from them
+// Useful when a class is sealed or when we want to inherit from multiple classes
+//// (in C# a class cannot have multiple base classes)
+
+public interface IBird
 {
-    public interface IValueContainer : IEnumerable<int>
-    {
+    int Weight { get; set; }
 
+    void Fly();
+}
+
+public class Bird : IBird
+{
+    public void Fly()
+    {
+        Console.WriteLine($"Flying with weight {Weight}");
     }
 
-    public class SingleValue : IValueContainer
+    public int Weight { get; set; }
+}
+
+public interface ILizard
+{
+    int Weight { get; set; }
+
+    void Crawl();
+}
+
+public class Lizard : ILizard
+{
+    public void Crawl()
     {
-        public int Value;
-
-        // Masquarade as a collection
-        public IEnumerator<int> GetEnumerator()
-        {
-            yield return Value;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        Console.WriteLine($"Crawling with weight {Weight}");
     }
 
-    public class ManyValues : List<int>, IValueContainer
-    {
+    public int Weight { get; set; }
+}
 
+public class Dragon : IBird, ILizard
+{
+    private Bird _bird = new Bird();
+    private Lizard _lizard = new Lizard();
+    private int weight;
+
+    public void Crawl()
+    {
+        _lizard.Crawl();
     }
 
-    public static class ExtensionMethods
+    public void Fly()
     {
-        public static int Sum(this List<IValueContainer> containers)
+        _bird.Fly();
+    }
+
+    // Workaround for situations when both classes implement the same property
+    public int Weight
+    {
+        get
         {
-            int result = 0;
-            foreach (var c in containers)
-                foreach (var i in c)
-                    result += i;
-            return result;
+            return weight;
         }
+        set
+        {
+            weight = value;
+            _bird.Weight = weight;
+            _lizard.Weight = weight;
+        }
+    }
+}
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        var dragon = new Dragon();
+        dragon.Weight = 100;
+        dragon.Fly();
+        dragon.Crawl();
     }
 }
